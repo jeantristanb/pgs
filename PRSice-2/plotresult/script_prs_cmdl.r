@@ -54,8 +54,12 @@ option_list = list(
               help="phenotype header of data", metavar="character"),
   make_option(c("--covariables"), type="character", default=NULL,
               help="list of covariable separated by a comma, must be present in data", metavar="character"),
-  make_option(c("--type_out"), type="character", default="Coefficient",
-              help="used Coefficient of lm or mean to showed increased", metavar="character"),
+  make_option(c("--pop_header"), type="character", default="All",
+              help="list of covariable separated by a comma, must be present in data", metavar="character"),
+  make_option(c("--plotqt_type"), type="character", default="Coefficient",
+              help="plot Coefficient, OR or mean between different first quantile of PRS and other quantile, Effect/OR : effect or OR are result of LM", metavar="character"),
+  make_option(c("--prs_header"), type="character", default="PRS",
+              help="PRS header in PRS header", metavar="character"),
   make_option(c("--quantile_number"), type="integer", default=10,
               help="number of quantile to plot", metavar="character"),
   make_option(c("--tr_var"), type="character", default="nullfct",
@@ -92,7 +96,7 @@ prsice2_header<-opt[['head_bestprs']]
 pheno<-opt[['pheno']]
 filedata<-opt[['data']]
 covariable<-opt[['covariables']];covariable_tmp<-strsplit(covariable, split=',')[[1]]
-type_coeff<-opt[['type_out']]
+type_coeff<-opt[['plotqt_type']]
 NQuant<-opt[['quantile_number']]
 out=opt[['out']]
 fcttr1<-opt[['tr_var']]
@@ -116,7 +120,10 @@ q('no', 3)
 #covariable<-paste("age","Age2","sex","pc1","pc2","pc3","pc4","pc5","pc6","pc7","pc8","pc9","pc10",sep=',')
 
 ## readding 
-StuctPrscice=extract_prsicefile(listfile_prs, prsice2_header, filedata, pheno, covariable)
+#extract_prsicefile<-function(listfileI, listheadI, filepheno, var, covar, info_ind=NULL, fcttr1=nulltr, fcttr2=nulltr, headprs='PRS'){
+
+#extract_prsicefile<-function(listfileI, listheadI, filepheno, var, covar, info_ind=NULL, fcttr1=nulltr, fcttr2=nulltr, headprs='PRS'){
+StuctPrscice=extract_prsicefile(listfile_prs, prsice2_header, filedata, pheno, covariable, info_ind=opt[['pop_header']], fcttr1=fcttr1, fcttr2=fcttr2, headprs=opt[['prs_header']])
 DataIPrscice<-extract_prscice_info(StuctPrscice$listefile,StuctPrscice$studies)
 
 
@@ -128,9 +135,10 @@ dataset<-StuctPrscice$studies
 
 
 debugvar<-T
-var_struct<-'All'
+var_struct<-opt[['pop_header']]
+#computed_lm<-function(Struct, pheno,covar,liststudies, fcttr1, fcttr2, NQuant,Pop){
 lmres<-computed_lm(StuctPrscice, pheno,  StuctPrscice$covar,StuctPrscice$studies, get(fcttr1), get(fcttr2), NQuant, var_struct)
-plot_prscice2(lmres$reslm,StuctPrscice$studies, type_coeff, 'All')
+plot_prscice2(lmres$reslm,StuctPrscice$studies, type_coeff, var_struct)
 ggsave(paste(out,'_dist_quant.pdf',sep=''))
 d<-do_lmprsice(lmres$data_tr,lmres$pheno_tr, dataset, var_struct)
 plot_varexplained(d, StuctPrscice$studies, var_struct)

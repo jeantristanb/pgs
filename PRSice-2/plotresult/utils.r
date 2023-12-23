@@ -1,4 +1,11 @@
 require(psychometric)
+checkhead<-function(Data,listhead){
+ if(!all(listhead %in% names(Data))){
+         cat(listhead[!(listhead %in% names(Data))], ' header not found\nexit')
+         quit('no',6)
+ }
+return(T)
+}
 
 plotvenn<-function(Data){
  listres=list('Admixture'=Data$FID[!is.na(Data$NoAdm) & !Data$NoAdm], 'Relatdness'=Data$FID[!is.na(Data$noRelatded) & !Data$noRelatded], 'Neigbour'=Data$FID[!is.na(Data$PassNeighbour) & !Data$PassNeighbour], 'Pcs'=Data$FID[!is.na(Data$PassPcsFilt) & !Data$PassPcsFilt], 'EigenStrat'=Data$FID[!is.na(Data$EigPcsFilter) & !Data$EigPcsFilter])
@@ -79,8 +86,8 @@ plot_quantile<-function(quantile_resume, fill, type="coeff", Pop="All"){
  if(Pop=='All')quantiles.plot <-     ggplot(quantile_resume, aes_string(x = "quant",y = y,ymin = ymin,ymax = ymax, fill=fill,color=fill))+ geom_point(width=0.2,position=position_dodge(width=0.5))+geom_errorbar(width = 0.2, position=position_dodge(width=0.5)) +theme_sam
  else {
 	names(quantile_resume)[names(quantile_resume)=="Pop"]<-Pop
-	if(length(unique(quantile_resume[,fill]))>1)quantiles.plot <-     ggplot(quantile_resume, aes_string(x = "quant",y = y,color=fill,fill=fill))+ geom_errorbar(position=position_dodge2(width=0.5),  aes_string(ymin = ymin,ymax = ymax), width=0.5)+geom_point(position=position_dodge2(width=0.5), aes_string(color=fill)) #+theme_sam 
-	else  quantiles.plot <-     ggplot(quantile_resume, aes_string(x = "quant",y = y,ymin = ymin,ymax = ymax, fill=Pop,color=Pop))+ geom_point(position=position_dodge(width=0.5),aes_string(color=Pop, shape=Pop))+geom_errorbar(position=position_dodge(width=0.5)) +theme_sam
+	if(length(unique(quantile_resume[,fill]))>1)quantiles.plot <-     ggplot(quantile_resume, aes_string(x = "quant",y = y,color=fill,fill=Pop))+ geom_errorbar(position=position_dodge2(width=0.5),  aes_string(ymin = ymin,ymax = ymax), width=0.5)+geom_point(position=position_dodge2(width=0.5), aes_string(color=fill,shape=Pop),size=2) #+theme_sam 
+	else  quantiles.plot <-     ggplot(quantile_resume, aes_string(x = "quant",y = y,ymin = ymin,ymax = ymax, fill=Pop,color=Pop))+ geom_point(position=position_dodge(width=0.5),aes_string(color=Pop, shape=Pop, size=1.5))+geom_errorbar(position=position_dodge(width=0.5)) +theme_sam
  }
  if(type %in% c('Or','Coefficient'))quantiles.plot<-quantiles.plot + geom_hline(yintercept=yhor, linetype="dashed", color = "red")
  return(quantiles.plot)
@@ -102,7 +109,7 @@ addresiduals<-function(data, var ,covar, varnewnam,fcttr1=nulltr, fcttr2=nulltr)
  tmpdata
 }
 
-getlm<-function(data1,head1,head2,head, cov=NULL){
+getlm<-function(data1,head1,head2,head, cov=NULL,debugvar=T){
 if(debugvar)cat('getlm', head1, head2, head, cov,'\n')
  pval_format<-function(x){
   if(x>10**-2)return(as.character(round(x, 2)))
@@ -119,8 +126,8 @@ if(debugvar)cat('getlm', head1, head2, head, cov,'\n')
  if(!is.null(head))names(tmp)<-paste(names(tmp),head,sep='.')
  if(length(cov)>0){ 
  covvar2<-rownames(tmpglm$coefficients)[3:nrow(tmpglm$coefficients)]
- tmp2<-matrix(c(tmpglm$coefficients[3:nrow(tmpglm$coefficients),1], tmpglm$coefficients[3:nrow(tmpglm$coefficients),2], tmpglm$coefficients[3:nrow(tmpglm$coefficients),3]), ,nrow=1)
- colnames(tmp2)<- paste(rep(c('beta','se','pval'), each=length(Cov)),covvar2,sep="_")
+ tmp2<-matrix(c(tmpglm$coefficients[3:nrow(tmpglm$coefficients),1], tmpglm$coefficients[3:nrow(tmpglm$coefficients),2], tmpglm$coefficients[3:nrow(tmpglm$coefficients),4]), ,nrow=1)
+ colnames(tmp2)<- paste(rep(c('beta','se','pval'), each=length(cov)),covvar2,sep="_")
  tmp<-cbind(tmp,tmp2)
  print(tmp)
 }
@@ -129,7 +136,8 @@ tmp
 
 
 
-extract_prsicefile<-function(listfileI, listheadI, filepheno, var, covar, info_ind=NULL, fcttr1=nulltr, fcttr2=nulltr){
+extract_prsicefile<-function(listfileI, listheadI, filepheno, var, covar, info_ind=NULL, fcttr1=nulltr, fcttr2=nulltr, headprs='PRS'){
+ if(info_ind=='All')info_ind=NULL
  listfile=strsplit(listfileI, split=',')[[1]]
  listhead=strsplit(listheadI, split=',')[[1]]
  if(length(listfile)!=length(listhead)){
@@ -142,13 +150,20 @@ extract_prsicefile<-function(listfileI, listheadI, filepheno, var, covar, info_i
  if(!is.null(info_ind))info_ind=strsplit(info_ind, split=',')[[1]]
  pheno=strsplit(var, split=',')[[1]]
  DataPheno<-read.table(filepheno, header=T)
- DataPheno<-DataPheno[,c(names(DataPheno)[1:2],pheno, covar, info_ind)]
+ listhead_pheno=c(names(DataPheno)[1:2],pheno, covar, info_ind)
+ checkhead(DataPheno,listhead_pheno)
+ DataPheno<-DataPheno[,listhead_pheno]
+
+ print(head(DataPheno))
  DataF<-DataPheno
  DataF2<-DataPheno
  Cmt<-1
  for(File in listfile){
-    Data<-read.table(File, header=T)[,c(1,2,4)]
-    names(Data)[3]<-listhead[Cmt]
+    Data<-read.table(File, header=T)
+    checkhead(Data,headprs)
+    Data[,c(names(Data)[1:2],headprs)]
+    names(Data)<-c('FID','IID',listhead[Cmt])
+    #names(Data)[3]<-listhead[Cmt]
     DataF<-merge(DataF,Data, by=c(1,2),all=T)
     Cmt<-Cmt+1
  }
@@ -171,7 +186,7 @@ computed_lm_all<-function(DataAll, pheno,covar,liststudies, fcttr1, fcttr2, NQua
  }
 
  
- if(debugvar)cat("computed_lm_all : end\n")
+ if(debugvar)cat("\ncomputed_lm_all : begin\n")
  varnewnam<-paste(pheno,'_trans',sep='')
  if(!is.null(covar))DataAll<-addresiduals(DataAll, pheno,covar, varnewnam,fcttr1, fcttr2)
  else {
@@ -182,6 +197,7 @@ computed_lm_all<-function(DataAll, pheno,covar,liststudies, fcttr1, fcttr2, NQua
     pheno=varnewnam
  }
  Cmt<-1
+ print(liststudies)
  for(studies in liststudies){
 	   Data<-DataAll[,c(names(DataAll)[1:2],studies,pheno,covar)]
 	   names(Data)[1:3]<-c('FID','IID', 'PRS')
@@ -201,7 +217,7 @@ computed_lm_all<-function(DataAll, pheno,covar,liststudies, fcttr1, fcttr2, NQua
 computed_lm<-function(Struct, pheno,covar,liststudies, fcttr1, fcttr2, NQuant,Pop){
  if(debugvar)print('begin computed_lm')
  DataAll<-Struct$data
- #print(Pop)
+ print(Pop)
  #print(Pop=='All')
  if(is.null(Pop) || Pop=='All'){
 	 print('not sub structure')
@@ -210,6 +226,7 @@ computed_lm<-function(Struct, pheno,covar,liststudies, fcttr1, fcttr2, NQuant,Po
 	 return(list(reslm=lmres$reslm, data_tr=lmres$data_tr, pheno_tr=lmres$pheno_tr, pop=lmres$pop))
  }else {
 	 Cmt<-1
+	 cat("\n",Pop,names(DataAll),'\n')
 	 DataAll<-DataAll[!is.na(DataAll[,Pop]),]
 	 TmpRes<-computed_lm_all(DataAll, pheno,covar,liststudies, fcttr1, fcttr2, NQuant) 
 	 AllResLM<-TmpRes$reslm;AllResLM$Pop<-"All"
@@ -217,7 +234,7 @@ computed_lm<-function(Struct, pheno,covar,liststudies, fcttr1, fcttr2, NQuant,Po
 	 listpheno=TmpRes$pheno_tr
 	 for(var in unique(DataAll[,Pop])){
 	   if(debugvar)cat('computed_lm begin var ',var, '\n')
-	   TmpRes<-computed_lm_all(DataAll[DataAll[,Pop]==var,], pheno,covar,liststudies, fcttr1, fcttr2, NQuant) 
+	   TmpRes=computed_lm_all(DataAll[DataAll[,Pop]==var,], pheno,covar,liststudies, fcttr1, fcttr2, NQuant)
 	   PopResLM<-TmpRes$reslm;PopResLM$Pop<-var;AllResLM<-rbind(AllResLM,PopResLM)
 	   PopTr<-TmpRes$data_tr;PopTr$Pop<-var;DataTr<-rbind(DataTr,PopTr)
 	   if(debugvar)cat('computed_lm end',var, '\n')
@@ -274,19 +291,18 @@ do_lmprsice<-function(dglm, pheno, listfile, Pop){
 	  print('begin do_lmprsice')
   print(listfile)
   }
-  if(Pop=='All'){
-	  dlmall<-do_lmprsice_sub(dglm, pheno, listfile)
-	  print(dlmall)
-	  dlmall$Pop<-'All'
-  }else {
-    dglm2<-dglm[!is.na(dglm[,"Pop"]),]
+  dlmall<-do_lmprsice_sub(dglm, pheno, listfile)
+  dlmall$Pop<-'All'
+  if(Pop!='All') {
+    dglm2<-dglm[!is.na(dglm[,Pop]),]
     Cmt<-1
-    for(var in unique(as.character(dglm2[,"Pop"]))){
+    for(var in unique(as.character(dglm2[,Pop]))){
        if(debugvar)cat('begin : do_lmprsice',var, '\n')
-       dlmallsub<-do_lmprsice_sub(dglm2[dglm2[,"Pop"]==var,],pheno,listfile) 
+       dlmallsub<-do_lmprsice_sub(dglm2[dglm2[,Pop]==var,],pheno,listfile) 
        if(debugvar)cat('end do_lmprsice',var, '\n')
        dlmallsub$Pop<-var
-       if(Cmt==1)dlmall<-dlmallsub else dlmall<-rbind(dlmall,dlmallsub)
+       #if(Cmt==1)dlmall<-dlmallsub else dlmall<-rbind(dlmall,dlmallsub)
+       dlmall<-rbind(dlmall,dlmallsub)
        Cmt<-Cmt+1
     }
   }
@@ -298,8 +314,9 @@ plot_varexplained<-function(dlmf, listfile, pop){
 	dlmf<-dlmf[dlmf$studies %in% listfile,]
 	if(pop=='All')p<-ggplot(dlmf, aes_string(x="studies", y="r2.adj_perc", fill="studies")) +geom_bar(stat="identity")+theme_minimal() +xlab('') + ylab('% r2')
 	else {
-		p<-ggplot(dlmf, aes_string(x="studies", y="r2.adj_perc", fill="Pop")) +geom_bar(stat="identity",position = "dodge")+theme_minimal() +  +xlab('') + ylab('% r2')
-
+		dlmf[,"Pop"]<-as.factor(paste(pop,dlmf[,"Pop"],sep=':'))
+		if(length(dlmf[,"studies"]>1))p<-ggplot(dlmf, aes_string(x="studies", y="r2.adj_perc", fill='Pop', color="studies")) +geom_bar(stat="identity",position = "dodge")+theme_minimal()  +xlab('') + ylab('% r2')
+		else p<-ggplot(dlmf, aes_string(x="Pop", y="r2.adj_perc", fill='Pop', color="Pop")) +geom_bar(stat="identity",position = "dodge")+theme_minimal()  +xlab('') + ylab('% r2')
 	}
         return(p)
 }
@@ -308,10 +325,19 @@ extract_prscice_info<-function(listfile, listhead){
 	Cmt<-1
 	for(file in listfile){
 	 filelog<-gsub('.best$', '.log', file)
+	 if(file.exists(filelog)){
           datalog<-readLines(filelog)
 	  nbvarincluded<-strsplit(grep(" variant(s) included ", datalog,fixed=T,value=T),split=" ")[[1]][1]
+	  }else{
+		  nbvarincluded='Not log'
+	 } 
 	 filesummary<-gsub('.best$', '.summary', file)
+	 if(file.exists(filesummary)){
           data<-read.table(filesummary, header=T, sep='\t')
+	 }else{
+		data=data.frame('Phenotype'=NA,"Set"=NA,"Threshold"=NA,"PRS.R2"=NA,"Full.R2"=NA,"Null.R2"=NA,"Prevalence"=NA,"Coefficient"=NA,"Standard.Error"=NA,"P"=NA,"Num_SNP"=NA,"Empirical-P"=NA)
+
+	}
 	  data$nbvarincluded<-nbvarincluded
 	  data$studies<-listhead[Cmt]
 	  if(Cmt==1)dataF<-data

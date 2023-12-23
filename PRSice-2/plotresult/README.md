@@ -22,15 +22,13 @@
 * `--head_bestprs` : type="character", default=NULL, help="header name to give at each prs file, must be in same order than `--best_prs`"
 * `--pheno` , type="character", default=NULL, help= "henotype header of data"
 * `--covariables`, type="character", default=NULL, help="list of covariable separated by a comma, must be present in data"
-* `--type_out`, type="character", default="Coefficient", help="used Coefficient of lm or OR to showed increased"
+* `--plotqt_type`, type="character", default="Coefficient", help="plot Coefficient, OR or mean between different first quantile of PRS and other quantile, Effect/OR : effect or OR are result of LM"
 * `--quantile_number`: type="integer", default=10, help="number of quantile to plot"
 * `--tr_var`: type="character", default="nullfct", help="transforms variables to perform lm and residualisations"
-* `--tr_res`, type="character", default="nullfct", help : "transform residuals after glm"
+* `--tr_res`: type="character", default="nullfct", help : "transform residuals after glm"
+* `--prs_header` :  type="character", default="PRS", help="PRS header in PRS file"
 * `--out`, type="character", default="save_", help="output file name 
+* `--pop_header` type="character", default="All", help = 'split analyse by one phenotype, by default none'
  
-```
-
-Rscript pgs/PRSice-2/plotresult/script_prs_cmdl.r --data GWAS_pheno.txt --pheno  DBP_statusAHM321 --covariables age,Age2,sex,pc1,pc2,pc3,pc4,pc5,pc6,pc7,pc8,pc9,pc10 --best_prs file1.best,file2.best,file3.best --head_bestprs African,Europea,Trans --quantile_number 5 --out DBP
-```
-![distribution by quanile](./imagesexample/DBP_dist_quant.pdf)
-![distribution quantitative](./imagesexample/DBP_varexplained.pdf)
+## example 
+see [see folder : data_test](./data_test/)
