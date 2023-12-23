@@ -315,7 +315,7 @@ plot_varexplained<-function(dlmf, listfile, pop){
 	if(pop=='All')p<-ggplot(dlmf, aes_string(x="studies", y="r2.adj_perc", fill="studies")) +geom_bar(stat="identity")+theme_minimal() +xlab('') + ylab('% r2')
 	else {
 		dlmf[,"Pop"]<-as.factor(paste(pop,dlmf[,"Pop"],sep=':'))
-		if(length(dlmf[,"studies"]>1))p<-ggplot(dlmf, aes_string(x="studies", y="r2.adj_perc", fill='Pop', color="studies")) +geom_bar(stat="identity",position = "dodge")+theme_minimal()  +xlab('') + ylab('% r2')
+		if(length(unique(dlmf[,"studies"]))>1)p<-ggplot(dlmf, aes_string(x="studies", y="r2.adj_perc", fill='Pop', color="studies")) +geom_bar(stat="identity",position = "dodge")+theme_minimal()  +xlab('') + ylab('% r2')
 		else p<-ggplot(dlmf, aes_string(x="Pop", y="r2.adj_perc", fill='Pop', color="Pop")) +geom_bar(stat="identity",position = "dodge")+theme_minimal()  +xlab('') + ylab('% r2')
 	}
         return(p)
